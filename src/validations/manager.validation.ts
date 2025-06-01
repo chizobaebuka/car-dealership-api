@@ -5,7 +5,13 @@ export const managerCreateSchema = z.object({
     lastName: z.string().min(2, "Last name must be at least 2 characters"),
     phone: z.string().min(10, "Phone must be at least 10 characters"),
     department: z.string().optional(),
-    hireDate: z.date().optional()
+    hireDate: z
+        .string()
+        .refine((val) => !isNaN(Date.parse(val)), {
+            message: 'Invalid date format'
+        })
+        .transform((val) => new Date(val))
+        .optional()
 });
 
 export const managerUpdateSchema = managerCreateSchema.partial();

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import categoryService from '../services/category.service';
 import { sendResponse } from '../utils/apiResponse';
-import { CategoryCreateInput, CategoryUpdateInput } from '../validations/category.validation';
+import { CategoryCreateInput, categoryCreateSchema, CategoryUpdateInput, categoryUpdateSchema } from '../validations/category.validation';
 
 export const createCategory = async (
     req: Request<{}, {}, CategoryCreateInput>,
@@ -9,7 +9,25 @@ export const createCategory = async (
     next: NextFunction
 ) => {
     try {
-        const category = await categoryService.createCategory(req.body);
+        const validatedData = categoryCreateSchema.safeParse(req.body);
+        if (!validatedData.success) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Validation failed',
+                errors: validatedData.error.errors.map(err => err.message)
+            });
+            return;
+        }
+
+        const category = await categoryService.createCategory(validatedData.data);
+        if (!category) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Category creation failed',
+                errors: ['Category with this name already exists']
+            });
+            return;
+        }
         sendResponse(res, 201, 'Category created successfully', category);
     } catch (err) {
         next(err);
@@ -35,8 +53,27 @@ export const getAllCategories = async (
     next: NextFunction
 ) => {
     try {
-        const categories = await categoryService.getAllCategories();
-        sendResponse(res, 200, 'Categories retrieved successfully', categories);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const sort = req.query.sort as string;
+        const fields = req.query.fields as string;
+
+        const { categories, total } = await categoryService.getAllCategories({
+            page,
+            limit,
+            sort,
+            fields,
+            ...req.query, // pass along additional filters if needed
+        });
+
+        const pages = Math.ceil(total / limit);
+
+        sendResponse(res, 200, 'Categories retrieved successfully', categories, {
+            total,
+            page,
+            pages,
+            limit,
+        });
     } catch (err) {
         next(err);
     }
@@ -48,7 +85,17 @@ export const updateCategory = async (
     next: NextFunction
 ) => {
     try {
-        const category = await categoryService.updateCategory(req.params.id, req.body);
+        const validatedData = categoryUpdateSchema.safeParse(req.body);
+        if (!validatedData.success) {
+            res.status(400).json({
+                status: 'error',
+                message: 'Validation failed',
+                errors: validatedData.error.errors.map(err => err.message)
+            });
+            return;
+        }
+
+        const category = await categoryService.updateCategory(req.params.id, validatedData.data);
         sendResponse(res, 200, 'Category updated successfully', category);
     } catch (err) {
         next(err);

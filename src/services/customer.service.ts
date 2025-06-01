@@ -1,7 +1,8 @@
-import Customer from '../models/customer.model';
+import Customer, { ICustomer } from '../models/customer.model';
 import User from '../models/user.model';
 import { AppError } from '../utils/appError';
-import { CustomerCreateInput, CustomerUpdateInput } from '../validations/customer.validation';
+import { CustomerCreateInput, CustomerFilterInput, customerFilterSchema, CustomerUpdateInput } from '../validations/customer.validation';
+import { paginate } from '../utils/paginate';
 
 class CustomerService {
     async createCustomer(userId: string, input: CustomerCreateInput) {
@@ -52,6 +53,24 @@ class CustomerService {
         await User.findByIdAndDelete(customer.user);
 
         return customer;
+    }
+
+    async getAllCustomers(filter: CustomerFilterInput) {
+        const { page = 1, limit = 10, sort, ...query } = customerFilterSchema.parse(filter);
+
+        const [total, customers] = await paginate(Customer, query, {
+            page,
+            limit,
+            sort
+        });
+
+        return {
+            customers: customers as ICustomer[],
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            limit
+        };
     }
 }
 

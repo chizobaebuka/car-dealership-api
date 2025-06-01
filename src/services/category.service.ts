@@ -1,6 +1,8 @@
 
+import carModel from '../models/car.model';
 import categoryModel from '../models/category.model';
 import { AppError } from '../utils/appError';
+import { paginate } from '../utils/paginate';
 import { CategoryUpdateInput } from '../validations/category.validation';
 
 class CategoryService {
@@ -22,8 +24,15 @@ class CategoryService {
         return category;
     }
 
-    async getAllCategories() {
-        return categoryModel.find();
+    async getAllCategories(options: {
+        page?: number;
+        limit?: number;
+        sort?: string;
+        fields?: string;
+        [key: string]: any;
+    }) {
+        const [total, categories] = await paginate(categoryModel, {}, options);
+        return { total, categories };
     }
 
     async updateCategory(id: string, input: CategoryUpdateInput) {
@@ -45,7 +54,7 @@ class CategoryService {
         }
 
         // Remove category reference from cars
-        await categoryModel.updateMany(
+        await carModel.updateMany(
             { category: id },
             { $unset: { category: "" } }
         );

@@ -3,7 +3,8 @@ import Car from '../models/car.model';
 import Customer from '../models/customer.model';
 import Manager from '../models/manager.model';
 import { AppError } from '../utils/appError';
-import { OrderCreateInput, OrderUpdateInput } from '../validations/order.validation';
+import { OrderCreateInput, OrderUpdateInput, OrderFilterInput, orderFilterSchema } from '../validations/order.validation';
+import { paginate } from '../utils/paginate';
 
 class OrderService {
     async createOrder(customerId: string, input: OrderCreateInput) {
@@ -29,9 +30,8 @@ class OrderService {
             price: car.price
         });
 
-        // Update car availability
-        car.availability = false;
-        await car.save();
+        // ✅ FIX: Update car availability without triggering validation
+        await Car.updateOne({ _id: car._id }, { availability: false });
 
         return order;
     }
@@ -46,6 +46,25 @@ class OrderService {
             throw new AppError(404, 'Order not found');
         }
         return order;
+    }
+
+    async getAllOrders(filter: OrderFilterInput) {
+        const { page = 1, limit = 10, sort, ...query } = orderFilterSchema.parse(filter);
+
+        const [total, orders] = await paginate(Order, query, {
+            page,
+            limit,
+            sort,
+            populate: ['customer', 'car', 'manager'] // Populate related fields
+        });
+
+        return {
+            orders,
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            limit
+        };
     }
 
     async getCustomerOrders(customerId: string) {

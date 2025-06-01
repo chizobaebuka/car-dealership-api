@@ -2,6 +2,7 @@ import Manager from '../models/manager.model';
 import User from '../models/user.model';
 import { AppError } from '../utils/appError';
 import { ManagerCreateInput, ManagerUpdateInput } from '../validations/manager.validation';
+import { paginate } from '../utils/paginate';
 
 class ManagerService {
     async createManager(userId: string, input: ManagerCreateInput) {
@@ -34,8 +35,24 @@ class ManagerService {
         return manager;
     }
 
-    async getAllManagers() {
-        return Manager.find().populate('user', 'username email role');
+    async getAllManagers({ page = 1, limit = 10, sort }: { page: number; limit: number; sort?: string }) {
+        const query = {}; // Add any filters if needed
+
+        const [total, managers] = await paginate(Manager, query, {
+            page,
+            limit,
+            sort,
+        });
+
+        return {
+            data: managers,
+            pagination: {
+                total,
+                page,
+                pages: Math.ceil(total / limit),
+                limit,
+            },
+        };
     }
 
     async updateManager(id: string, input: ManagerUpdateInput) {

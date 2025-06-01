@@ -16,24 +16,15 @@ declare global {
     }
 }
 
-export const protect = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         let token: string | undefined;
-        if (
-            req.headers.authorization &&
-            req.headers.authorization.startsWith('Bearer')
-        ) {
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
         }
 
         if (!token) {
-            return next(
-                new AppError(401, 'You are not logged in! Please log in to get access.')
-            );
+            throw new AppError(401, 'Unauthorized: No token provided');
         }
 
         // Verify token
@@ -47,12 +38,7 @@ export const protect = async (
         };
 
         if (!currentUser) {
-            return next(
-                new AppError(
-                    401,
-                    'The user belonging to this token no longer exists.'
-                )
-            );
+            throw new AppError(401, 'Unauthorized: User not found');
         }
 
         // Attach user to request
@@ -62,19 +48,26 @@ export const protect = async (
             role: currentUser.role,
         };
 
-        next();
-    } catch (err) {
-        next(err);
+        next(); // Explicitly returning void
+    } catch (err: any) {
+        if (err.name === 'TokenExpiredError') {
+            res.status(401).json({
+                success: false,
+                message: 'Token expired',
+            });
+            return; // Explicitly returning void
+        }
+        console.error('Error in protect middleware:', err); // Log the error for debugging
+        next(err); // Explicitly returning void
     }
 };
 
-export const authorizeRoles = (...roles: Array<'admin' | 'manager' | 'customer'>) => {
-    return (req: Request, _res: Response, next: NextFunction) => {
+export const authorizeRoles = (...roles: Array<'admin' | 'manager' | 'customer'>): (req: Request, res: Response, next: NextFunction) => Promise<void> => {
+    return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
         if (!req.user || !roles.includes(req.user.role)) {
-            return next(
-                new AppError(403, 'You do not have permission to perform this action')
-            );
+            next(new AppError(403, 'You do not have permission to perform this action'));
+            return; // Explicitly returning void
         }
-        next();
+        next(); // Explicitly returning void
     };
 };

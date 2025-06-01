@@ -6,16 +6,22 @@ import {
     updateCar,
     deleteCar
 } from '../controllers/car.controller';
-import { validate } from '../middlewares/validate.middleware';
 import { protect, authorizeRoles } from '../middlewares/auth.middleware';
-import { carCreateSchema, carFilterSchema, carUpdateSchema } from '../validations/car.validation';
+/**
+ * @swagger
+ * tags:
+ *   name: Cars
+ *   description: API for managing cars
+ */
 
 const router = express.Router();
 
-router.get('/', validate(carFilterSchema), getAllCars as unknown as express.RequestHandler);
-router.post('/', protect, authorizeRoles('manager', 'admin'), validate(carCreateSchema), createCar);
-router.get('/:id', validate(carFilterSchema), getCar);
-router.put('/:id', protect, authorizeRoles('manager', 'admin'), validate(carUpdateSchema), updateCar);
-router.delete('/:id', protect, authorizeRoles('admin'), deleteCar);
+router.use(protect);
+
+router.get('/', getAllCars);
+router.post('/', authorizeRoles('admin', 'manager'), createCar);
+router.get('/:id', getCar);
+router.put('/:id', authorizeRoles('admin', 'manager'), updateCar);
+router.delete('/:id', authorizeRoles('admin', 'manager'), deleteCar);
 
 export default router;

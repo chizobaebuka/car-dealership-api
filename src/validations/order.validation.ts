@@ -12,5 +12,16 @@ export const orderUpdateSchema = z.object({
     status: z.enum(['pending', 'completed', 'cancelled']).optional()
 });
 
+export const orderFilterSchema = z.object({
+    customer: z.string().optional(),
+    car: z.string().optional(),
+    manager: z.string().optional(),
+    status: z.enum(['pending', 'completed', 'cancelled']).optional(),
+    page: z.number().int().min(1).optional().default(1),
+    limit: z.number().int().min(1).max(100).optional().default(10),
+    sort: z.string().optional()
+});
+
 export type OrderCreateInput = z.infer<typeof orderCreateSchema>;
 export type OrderUpdateInput = z.infer<typeof orderUpdateSchema>;
+export type OrderFilterInput = z.infer<typeof orderFilterSchema>;

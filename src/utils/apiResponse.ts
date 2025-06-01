@@ -38,8 +38,8 @@ export const sendResponse = (
     res.status(statusCode).json(response);
 };
 
-export const generateToken = (id: string) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET as string, {
-        expiresIn: process.env.JWT_EXPIRES_IN ? parseInt(process.env.JWT_EXPIRES_IN, 10) : undefined
+export const generateToken = (userId: string) => {
+    return jwt.sign({ id: userId }, process.env.JWT_SECRET!, {
+        expiresIn: '7d' // Extend expiration time to 7 days
     });
-}
+};
